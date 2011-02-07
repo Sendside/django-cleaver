@@ -1,0 +1,277 @@
+
+Explanation
+===========
+
+This module attempts to integrate the excellent CleverCSS tool with Django in
+a way that makes it easy for template designers to work with, and provides 
+some simple features which can help simplify the job of maintaining and
+customising your site's style sheets, especially (but not limited to) the
+purposes of franchising 
+(see http://www.huyng.com/archives/franchising-running-multiple-sites-from-one-django-codebase-2/394/).
+
+
+Notes
+=====
+
+This package requires (and does not include) the installation of CleverCSS,
+which does all of the heavy lifting. This package mainly provides:
+
+* A django adminsitration command to regenerate the style sheets (manually);
+
+* A directory watcher to automatically trigger style sheet regeneration when
+  a file has changed (for developer/designer use -- not intenteded for 
+  production use)
+  
+* The ability to specify one or more "config.ini" style files for initial 
+  variable population/interpolation, which makes the maintenance of complex
+  color themes very easy, makes color customisation for franchise-sites much
+  easier and quicker
+  
+  
+Installation
+============
+
+On both development and production machines, you should install the tarball
+to your site-packages directory. If you're using buildout, you can install the
+package automatically from github like this:
+
+    [buildout]
+    find-links = http://github.com/isolationism/django-cleaver/tarball/master#egg=django-cleaver
+    
+    parts = django-cleaver
+    eggs = django-cleaver
+    
+    [django-cleaver]
+    unzip = true
+    recipe = zc.recipe.egg
+
+    
+Configuration
+=============
+
+Add the project to your INSTALLED_APPS in settings.py:
+
+    INSTALLED_APPS = (
+        # ...
+        'django_cleaver',
+    )
+
+To enable the automatic output regeneration feature, you'll also need to add
+django-cleaver toward the top of your MIDDLEWARE_CLASSES stack:
+
+    MIDDLEWARE_CLASSES = (
+        # Regenerates CleverCSS output on-demand middleware
+        'django_cleaver.cleaver.RegenerateCleverOutputMiddleware',
+        
+        # ... Other classes go here
+    )
+
+N.B. it is completely safe to include this middleware class on production
+servers, as you can disable autogeneration using a config file option (see
+below).
+    
+Now, add the following section to your settings.py file:
+
+----------------------------------- 8< snip -----------------------------------
+
+import os
+CLEVERCSS_SOURCE = os.path.join(MEDIA_ROOT, 'clevercss')
+CLEVERCSS_CONTEXTFILES = (
+    os.path.join(CLEVERCSS_SOURCE, 'master.ini'), 
+)
+CLEVERCSS_OUTPUT = os.path.join(MEDIA_ROOT, 'css')
+CLEVERCSS_AUTOGENERATE = False # Set this to True on development servers
+
+----------------------------------- 8< snip -----------------------------------
+
+Let's explain the settings a bit:
+
+CLEVERCSS_SOURCE - This is the directory where you'll keep all your CleverCSS
+    (*.ccss) files. I put mine in project/media/clevercss, but this can be
+    anywhere you want.
+    
+CLEVERCSS_OUTPUT - This is the path where the CleverCSS output will go. This
+    should probably be your site media directory, unless you have something
+    special planned. Don't specify the filename here -- just the path where it
+    will go.
+    
+CLEVERCSS_CONTEXTFILES - This is a tuple of full paths to config.ini style
+    files that will be passed as context to your ccss files. The format of
+    those files follows in a later section. Context files will be processed
+    in order of precedence, so a typical pattern is to define some defaults in
+    the first file, then override the defaults in a following file or files as
+    you want.
+    
+CLEVERCSS_AUTOGENERATE - A boolean value. When true, Cleaver will automatically
+    generate the CleverCSS files at need. This is very convenient for developers
+    and designers, but should never be enabled on production sites due to 
+    performance issues and the potential for abuse.
+
+    
+Usage
+=====
+
+If you haven't already, create your CLEVERCSS_SOURCE directory now, and the
+CLEVERCSS_CONTEXTFILES you defined. You will also need to create at least one
+".ccss" file -- it is generally a good idea to match these to your 
+context filename -- in this example, we'll go with "master.ccss".
+
+Now there are three tasks before you can start developing:
+
+1 - Edit your master.ini file to contain some variable definitions
+-------------------------------------------------------------------
+
+Edit your master.ini file and insert the following:
+
+----------------------------------- 8< snip -----------------------------------
+[Color Names]
+white = #FFF
+black = #000
+favorite_color = #070
+
+[Color Classes]
+page_background = $white
+page_foreground = $black
+link = $favorite_color
+link_visited = $favourite_color.shade(0,-50) 
+
+[Fonts]
+body_font_family = sans-serif
+body_font_size = 90%
+----------------------------------- 8< snip -----------------------------------
+
+Use standard "ini" file syntax here. The section titles are required for the
+file to be valid, but can be called whatever you want -- they don't affect the
+parsing. 
+
+I personally like to abstract a color's appearance from its intended use, which 
+is why I define "base values" in one location and how it will be used in the
+style sheet in a different section. Note how I am also interpolating and 
+modifying $favorite_color to be a desaturated shade of the original color
+for visited links. This is a CleverCSS method; look at CleverCSS' utils for
+details on available methods on color values.
+
+What you define here is entirely up to you -- anything that you may want to 
+customize or tweak later. I suggest considering things like colors, images
+and sprites (CleverCSS bundles some very handy features for making image
+sprites a little less painful to work with), font families and sizes, border
+widths, paddings and margins -- you name it. Remember to make use of CleverCSS'
+methods to make your life easier, and don't worry about deep variable
+interpolation -- CleverCSS has very fast execution times, and doesn't seem to
+have any problem doing them.
+
+
+2 - Create a few CleverCSS component files
+------------------------------------------
+
+Create a new file called "_page.ccss". The underscore is significant -- It 
+instructs CleverCSS not to directly parse this document. The reason for this
+will become apparent in step 3 below. Into this file, insert the following:
+
+----------------------------------- 8< snip -----------------------------------
+
+body:
+    background-color: $page_background
+    color: $page_foreground
+    font-family: $body_font_family
+    font-size: $body_font_size
+    
+    a:
+        color: $link
+        
+        &:visited:
+            color: $link_visited
+
+----------------------------------- 8< snip -----------------------------------
+
+This is a regular old CleverCSS file, with one exception: All of the context
+we defined in that ini file is available here.
+
+Again, as a best practice, I don't want to define any new or even derived colors
+in this file -- because I want to be able to customize 100% of the colors by
+editing ONLY the config.ini file. While this isn't a strict requirement, it
+makes customisation easier.
+
+
+3 - Edit your master.ccss file to include your CleverCSS component files
+-------------------------------------------------------------------------
+
+Now edit your master.ccss file to contain the following:
+
+----------------------------------- 8< snip -----------------------------------
+@import url(_body.ccss) 
+----------------------------------- 8< snip -----------------------------------
+
+That's it. When you create a new component, you'll need to import it here (and
+again, remember that order is important for the generated CSS). This layer of
+separation makes several things possible:
+
+* You have one master manifest of all the files that go into creating the
+  completed style sheet
+  
+* You can have as many discrete parts in tidy, organized, well-documented
+  files as you want ...
+  
+* ... But they are automatically collapsed down to a single file, based on the
+  filename of the source file you defined (in this example, the output file name
+  will be master.css).
+  
+* Provides another layer where style sheets can be customized for franchises
+  beyond what is possible through variable interpolation in the .ini files.
+  
+Also, because we have generated a single valid CSS file, it is easy to call 
+additional commands to perform further processing on the file, such as 
+compression-obfuscation.
+
+Generating Style Sheets
+=======================
+
+To regenerate the style sheets, you have two options:
+
+1 - Enable CLEVERCSS_AUTOGENERATE on your local development server, which will
+    automatically take care of regeneration for you as required. This typically
+    happens so fast you won't even notice it happening.
+    
+2 - When preparing for deployment on a staging or testing server, you can call
+    the django management command as follows:
+    
+    $ python manage.py generate_css
+    Output compiled CSS file /path/to/media/css/master.css
+
+Franchising
+===========
+
+While the details of franchising are beyond the scope of this document, the
+process is relatively straightforward:
+
+1 - Create a new settings.py file for your franchise named after your franchise
+
+2 - In your franchise settings file, redefine CLEVERCSS_CONTEXTFILES:
+
+    CLEVERCSS_CONTEXTFILES = (
+        'master.ini',
+        'my_franchise.ini',
+    )
+    
+3 - Create my_franchise.ini, (re-)defining ONLY values you need to change. You
+    Don't need to copy master.ini because all those values will already be 
+    defined in step 2 above. 
+    
+4 - Create my_franchise.ccss, with the first line being:
+
+    @import url(master.ccss)
+    
+    Now, as with step 3, you only need to define things you want to change from
+    the base properties. Normally you will do this by importing one or more
+    partials, e.g. ...
+    
+    @import url(_my_franchise_special_buttons.ccss)
+    @import url(_my_franchise_other_customisation.ccss)
+    
+5 - Include (only) the generated my_franchise.css file in your franchise
+    templates. Since you probably want to do this automatically without having
+    to manually define a template, I recommend setting the output filename
+    as a variable somewhere in the settings file.
+
+
+
