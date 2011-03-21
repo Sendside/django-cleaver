@@ -10,7 +10,7 @@ from imagecraft import ImageGenerator
 from django.conf import settings
 
 # This module
-from cleaver import ini_to_context
+from cleaver import ini_to_context, flatten_context
 
 
 # Retrieve execution params
@@ -58,7 +58,7 @@ class DynamicImageGenerator(ImageGenerator):
 def generate_images():
     """Reads the context file and uses it to execute all CLEVERCSS_IMAGE_JOBS
     specified in a settings file"""
-    context = ini_to_context()
+    context = flatten_context(ini_to_context())
 
     for job in CLEVERCSS_IMAGE_JOBS:
         filename = job[0]
