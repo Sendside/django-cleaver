@@ -18,6 +18,6 @@ class Command(BaseCommand):
         ignored."""
         outfiles = generate_css_from_ccss()
         for filename in outfiles:
-            print "Output compiled CSS file %s" % (filename)
+            print "Output compiled CSS file %s" % (filename,)
 
 

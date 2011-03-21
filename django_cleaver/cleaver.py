@@ -27,6 +27,21 @@ CLEVERCSS_CONTEXTFILES = getattr(settings, 'CLEVERCSS_CONTEXTFILES', \
         path.join(CLEVERCSS_SOURCE, 'colors.ini'))
 
 
+def get_ccss_file_list():
+    """Returns a list of *.ccss files, excluding partials (filenames beginning
+     with an underscore)"""
+    source_dir = CLEVERCSS_SOURCE
+    files = []
+    # Gather a list of files that we will parse
+    for filename in listdir(source_dir):
+        # No partials allowed and only process filenames ending with 'ccss'
+        if not filename.startswith('_') and filename.endswith('ccss'):
+            fullname = path.join(source_dir, filename)
+            if path.isfile(fullname): # No dirs/subdirs
+                files.append(fullname)
+    return files
+
+
 def ini_to_context(filenames=CLEVERCSS_CONTEXTFILES):
     """Loads a config.ini-formatted file at filename and returns a flat context
     object that always returns strings for both keys and values (e.g. no 
@@ -62,27 +77,61 @@ def ini_to_context(filenames=CLEVERCSS_CONTEXTFILES):
     return context
 
 
-# Generate CSS from CleverCSS source files
+def flatten_context(context=None):
+    """Flattens a context file out to a dictionary of variable names and
+    literal values. All variables are removed. This is handy for creating
+    a "simpler" file for previewing the colours without generating the CSS,
+    and for external use (such as providing color values for generating images.
+
+    N.B. that sprite maps are not be returned, but the definitions for the
+    sprites themselves are.
+    """
+    # If no context was passed, fetch one
+    if isinstance(context, (str, unicode)): # Passed a file, not a dict?
+        use_context = ini_to_context(context)
+    else:
+        use_context = context or ini_to_context()
+
+    # Get a single file so the parser can resolve directory names.
+    ccss_file = get_ccss_file_list()[0]
+
+    # Create Parser and Context instances
+    ps = clevercss.engine.Parser(fname=ccss_file)
+    cxo = clevercss.Context(use_context)
+    cxo.minified = False
+
+    # Convert context into expressions that can be evaluated
+    for key, value in cxo.iteritems():
+        if isinstance(value, str):
+            expr = ps.parse_expr(1, value)
+            cxo[key] = expr
+
+    # Loop over all the 'keys' in the context and evaluate their expression
+    flat = {}
+    for key, value in use_context.iteritems():
+        expr = ps.parse_expr(1, value)
+
+        # We can't return sprite maps. Sorry!
+        if not isinstance(expr, clevercss.expressions.SpriteMap):
+            keyvar = clevercss.expressions.Var(key)
+            flat[key] = keyvar.to_string(cxo)
+
+    return flat
+
+
 def generate_css_from_ccss(context=None):
     """Parses CleverCSS source files in CLEVERCSS_SOURCE and generates CSS
     output, which is placed in CLEVERCSS_OUTPUT. Note that files beginning
     with an underscore will be ignored, as will any subdirectories."""
-    source_dir = CLEVERCSS_SOURCE
-    files = []
-    # Gather a list of files that we will parse
-    for filename in listdir(source_dir):
-        # No partials allowed and only process filenames ending with 'ccss'
-        if not filename.startswith('_') and filename.endswith('ccss'):
-            fullname = path.join(source_dir, filename)
-            if path.isfile(fullname): # No dirs/subdirs
-                files.append(fullname)
+    # Get a list of CCSS files
+    files = get_ccss_file_list()
     
     # If no context was passed, fetch one
     if isinstance(context, (str, unicode)): # Passed a file, not a dict?
         use_context = ini_to_context(context)
     else:
         use_context = context or ini_to_context()
-    
+
     outfiles = []
     
     # Loop over found files and process them
@@ -93,8 +142,9 @@ def generate_css_from_ccss(context=None):
         except IOError, msg:
             raise
         try:
-            converted = clevercss.convert(srcfile.read(), context=use_context, 
-                    fname=filename)
+            converted = clevercss.convert(srcfile.read(), use_context,
+                                          fname=filename)
+
         except (ParserError, EvalException), msg:
                 raise ValueError, "Error in file %s: %s" % (filename, msg)
         finally:
