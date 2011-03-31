@@ -48,7 +48,6 @@ def ini_to_context(filenames=CLEVERCSS_CONTEXTFILES):
     natives) -- see ConfigParser.RawConfigParser in the standard library for
     format details
     """
-    cparser = RawConfigParser()
     context = {}
 
     # If a single filename was provided, recast as an iterable now
@@ -56,13 +55,10 @@ def ini_to_context(filenames=CLEVERCSS_CONTEXTFILES):
         filenames = (filenames, )
 
     for filename in filenames:
+        cparser = RawConfigParser()
         try:
             fob = open(filename, 'rb')
         except IOError, msg:
-            raise
-        try:
-            config = RawConfigParser
-        except Exception:
             raise
 
         # Read in our configuration file
