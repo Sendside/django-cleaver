@@ -7,7 +7,7 @@ setup(
     name='django-cleaver',
     author='Kevin Williams',
     author_email='kevin@weblivion.com',
-    version='0.2',
+    version='0.2.1',
     license='BSD',
     url='https://github.com/isolationism/django-cleaver',
     download_url='https://github.com/isolationism/django-cleaver/tarball/master',

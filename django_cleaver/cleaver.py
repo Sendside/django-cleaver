@@ -138,11 +138,11 @@ def generate_css_from_ccss(context=None):
         except IOError, msg:
             raise
         try:
-            converted = clevercss.convert(srcfile.read(), use_context,
-                                          fname=filename)
-
-        except (ParserError, EvalException), msg:
-                raise ValueError, "Error in file %s: %s" % (filename, msg)
+            try:
+                converted = clevercss.convert(srcfile.read(), use_context,
+                                              fname=filename)
+            except (ParserError, EvalException), msg:
+                    raise ValueError, "Error in file %s: %s" % (filename, msg)
         finally:
             srcfile.close()
 
