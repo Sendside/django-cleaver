@@ -18,6 +18,8 @@ from django.conf import settings
 MEDIA_ROOT = getattr(settings, 'MEDIA_ROOT', False)
 if not MEDIA_ROOT:
     raise ValueError("You must define a MEDIA_ROOT in settings.py!")
+CLEVERCSS_SOURCE_ROOT = getattr(settings, 'CLEVERCSS_SOURCE_ROOT', \
+        path.join(MEDIA_ROOT, 'clevercss'))
 CLEVERCSS_SOURCE = getattr(settings, 'CLEVERCSS_SOURCE', \
         path.join(MEDIA_ROOT, 'clevercss'))
 CLEVERCSS_OUTPUT = getattr(settings, 'CLEVERCSS_OUTPUT', \
