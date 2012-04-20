@@ -164,22 +164,11 @@ def generate_css_from_ccss(context=None):
 
     # Done
     return outfiles
-    
+
 
 class RegenerateCleverOutputMiddleware(object):
-    
+
     def process_request(self, request):
-        """Intercepts a request to verify that files have not changed on disk,
-        regenerates the CleverCSS output if required, then allows the request
-        to continue. Can be inserted anywhere in the request chain."""
-        if settings.DEBUG and CLEVERCSS_AUTOGENERATE:
-            if request.path.find(settings.MEDIA_URL) == -1:
-                def callback(arg1, arg2):
-                    print "Regenerating CleverCSS output ..."
-                    result = generate_css_from_ccss()
-                    return False
-                watch_directories([CLEVERCSS_SOURCE,], callback)
-        return None
-
-
-
+        """Deprecated."""
+        raise DeprecationWarning("Please use django_cleaver.middleware."
+                                 "RegenerateCleverOutputMiddleware instead")

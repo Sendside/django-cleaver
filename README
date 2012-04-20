@@ -18,9 +18,9 @@ which does all of the heavy lifting. This package mainly provides:
 
 * A django adminsitration command to regenerate the style sheets (manually);
 
-* A directory watcher to automatically trigger style sheet regeneration when
-  a file has changed (for developer/designer use -- not intenteded for 
-  production use)
+* A directory watcher to automatically trigger image and style sheet 
+  regeneration when a file has changed (for developer/designer use -- 
+  not intenteded for production use!)
   
 * The ability to specify one or more "config.ini" style files for initial 
   variable population/interpolation, which makes the maintenance of complex
@@ -61,7 +61,7 @@ django-cleaver toward the top of your MIDDLEWARE_CLASSES stack:
 
     MIDDLEWARE_CLASSES = (
         # Regenerates CleverCSS output on-demand middleware
-        'django_cleaver.cleaver.RegenerateCleverOutputMiddleware',
+        'django_cleaver.middleware.RegenerateCleverOutputMiddleware',
         
         # ... Other classes go here
     )
