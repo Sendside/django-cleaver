@@ -60,9 +60,9 @@ def generate_images():
     specified in a settings file"""
     context = flatten_context(ini_to_context())
 
-    for job in CLEVERCSS_IMAGE_JOBS:
-        filename = job[0]
-        layers = job[1]
+    # Unpack SortedDict with tuple for values
+    for filename, values in CLEVERCSS_IMAGE_JOBS.items():
+        layers = values.values()
         DynamicImageGenerator(context, layers=layers,
                               output_filename=filename).render()
 
