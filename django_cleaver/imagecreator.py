@@ -30,8 +30,6 @@ CLEVERCSS_IMAGE_OUTPUT = getattr(settings, "CLEVERCSS_IMAGE_OUTPUT", None)
 # Throw errors if information is missing
 if not CLEVERCSS_CONTEXTFILES:
     raise ValueError("You must define CLEVERCSS_CONTEXTFILES")
-if not CLEVERCSS_IMAGE_JOBS:
-    raise ValueError("You must define CLEVERCSS_IMAGE_JOBS")
 if not CLEVERCSS_IMAGE_SOURCE:
     raise ValueError("You must define CLEVERCSS_IMAGE_SOURCE")
 if not CLEVERCSS_IMAGE_OUTPUT:
@@ -58,9 +56,13 @@ class DynamicImageGenerator(ImageGenerator):
 def generate_images():
     """Reads the context file and uses it to execute all CLEVERCSS_IMAGE_JOBS
     specified in a settings file"""
+    # If there are no jobs, die
+    if not CLEVERCSS_IMAGE_JOBS:
+        return
+
     context = flatten_context(ini_to_context())
 
-    # Unpack SortedDict with tuple for values
+    # Unpack SortedDict with tuple for values 
     for filename, values in CLEVERCSS_IMAGE_JOBS.items():
         layers = values.values()
         DynamicImageGenerator(context, layers=layers,
