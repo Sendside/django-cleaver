@@ -14,6 +14,6 @@ setup(
     description='Integrates CleverCSS with Django with built-in support for franchise customisations',
     packages=find_packages(),
     include_package_data = False,
-    install_requires = ['clevercss>=0.2.3.dev'],
+    install_requires = ['clevercss>=0.2.2.dev'],
 )
 
